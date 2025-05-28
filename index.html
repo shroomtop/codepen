@@ -1,0 +1,1055 @@
+​<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodePen Curator 3D - Organizer & Exporter</title>
+    <style>
+        /* --- Base & Reset --- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --font-main: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            --transition-fast: 0.2s ease-out;
+            --transition-medium: 0.4s ease-out;
+            --shadow-light: 0 4px 15px rgba(0, 0, 0, 0.1);
+            --shadow-heavy: 0 8px 30px rgba(0, 0, 0, 0.2);
+            --border-radius: 12px;
+            --rainbow-gradient: linear-gradient(45deg, #ff00ff, #00ffff, #ffff00, #ff00ff);
+            --rainbow-animation-speed: 5s;
+
+            /* Light Theme */
+            --bg-light: #eef2f7;
+            --card-bg-light: rgba(255, 255, 255, 0.6);
+            --text-light: #2c3e50;
+            --text-muted-light: #7f8c8d;
+            --accent-light: #3498db;
+            --border-light: rgba(0, 0, 0, 0.1);
+            --input-bg-light: rgba(255, 255, 255, 0.8);
+
+            /* Dark Theme */
+            --bg-dark: #1a1d24;
+            --card-bg-dark: rgba(40, 42, 54, 0.65);
+            --text-dark: #ecf0f1;
+            --text-muted-dark: #95a5a6;
+            --accent-dark: #0ebeff;
+            --border-dark: rgba(255, 255, 255, 0.1);
+            --input-bg-dark: rgba(60, 63, 80, 0.8);
+
+            /* Glow Theme */
+            --bg-glow: #0d0f15;
+            --card-bg-glow: rgba(10, 10, 20, 0.7);
+            --text-glow: #e0e8ff;
+            --text-muted-glow: #8a9ac4;
+            --accent-glow: #f0f;
+            --border-glow: rgba(255, 0, 255, 0.3);
+            --input-bg-glow: rgba(25, 28, 45, 0.8);
+
+            /* Default to Light */
+            --bg: var(--bg-light);
+            --card-bg: var(--card-bg-light);
+            --text: var(--text-light);
+            --text-muted: var(--text-muted-light);
+            --accent: var(--accent-light);
+            --border-color: var(--border-light);
+            --input-bg: var(--input-bg-light);
+            --card-shadow: var(--shadow-light);
+            --card-border-opacity: 0.5;
+            --blur-intensity: 8px;
+        }
+
+        body.dark-mode {
+            --bg: var(--bg-dark);
+            --card-bg: var(--card-bg-dark);
+            --text: var(--text-dark);
+            --text-muted: var(--text-muted-dark);
+            --accent: var(--accent-dark);
+            --border-color: var(--border-dark);
+            --input-bg: var(--input-bg-dark);
+            --card-shadow: var(--shadow-heavy);
+            --card-border-opacity: 0.7;
+            --blur-intensity: 12px;
+        }
+
+        body.glow-mode {
+            --bg: var(--bg-glow);
+            --card-bg: var(--card-bg-glow);
+            --text: var(--text-glow);
+            --text-muted: var(--text-muted-glow);
+            --accent: var(--accent-glow);
+            --border-color: var(--border-glow);
+            --input-bg: var(--input-bg-glow);
+            --card-shadow: 0 5px 25px rgba(255, 0, 255, 0.2);
+            --card-border-opacity: 1;
+            --blur-intensity: 15px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: background-color var(--transition-medium), color var(--transition-medium);
+            padding-top: 120px; /* Space for sticky header */
+            position: relative; /* For confetti */
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* --- Header & Controls --- */
+        .app-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-intensity));
+            -webkit-backdrop-filter: blur(var(--blur-intensity));
+            border-bottom: 1px solid var(--border-color);
+            padding: 15px 20px;
+            box-shadow: var(--shadow-light);
+            transition: background var(--transition-medium), border-color var(--transition-medium);
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .app-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            background: var(--rainbow-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow-text-anim var(--rainbow-animation-speed) linear infinite;
+            background-size: 200% 200%;
+            margin-right: 20px;
+            white-space: nowrap;
+        }
+
+        @keyframes rainbow-text-anim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+            flex-grow: 1;
+            min-width: 250px;
+        }
+
+        .input-area textarea {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+            background: var(--input-bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            font-size: 0.95em;
+            resize: none;
+            height: 40px; /* Initial height for single line */
+            transition: all var(--transition-fast);
+            overflow-y: auto; /* Allow scrolling if needed */
+            min-height: 40px;
+        }
+
+        .input-area textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-light); /* Keep outline color consistent for visibility */
+        }
+
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+        .button {
+            padding: 10px 18px;
+            border: none;
+            border-radius: var(--border-radius);
+            background: var(--accent);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            white-space: nowrap;
+        }
+        .button svg { width: 16px; height: 16px; fill: currentColor; }
+        .button:hover { transform: translateY(-2px); opacity: 0.9; box-shadow: var(--shadow-light); }
+        .button:active { transform: translateY(0); }
+
+        .button.secondary { background: var(--input-bg); color: var(--text); border: 1px solid var(--border-color); }
+        .button.secondary:hover { background: var(--card-bg); }
+
+        .theme-switcher button { background: none; border: none; font-size: 1.5em; cursor: pointer; padding: 5px; line-height: 1; transition: transform var(--transition-fast); }
+        .theme-switcher button:hover { transform: scale(1.1); }
+        .theme-switcher .icon-light, .theme-switcher .icon-dark, .theme-switcher .icon-glow { display: none; }
+        body:not(.dark-mode):not(.glow-mode) .theme-switcher .icon-light { display: inline; }
+        body.dark-mode .theme-switcher .icon-dark { display: inline; }
+        body.glow-mode .theme-switcher .icon-glow { display: inline; }
+
+        /* --- Main Grid --- */
+        #pen-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            padding: 25px;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+            flex: 1; /* Takes remaining space */
+        }
+
+        /* --- Pen Card --- */
+        .pen-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-intensity));
+            -webkit-backdrop-filter: blur(var(--blur-intensity));
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            position: relative;
+            overflow: hidden; /* Contain pseudo elements */
+            border: 1px solid var(--border-color);
+            transition: all var(--transition-medium);
+            cursor: grab;
+        }
+        .pen-card:active { cursor: grabbing; }
+
+        .pen-card::before { /* Simplified Animated Border */
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: var(--border-radius);
+            padding: 2px; /* Thickness */
+            background: var(--rainbow-gradient);
+            background-size: 300% 300%;
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: destination-out;
+            mask-composite: exclude;
+            animation: rainbow-border-anim var(--rainbow-animation-speed) linear infinite;
+            opacity: var(--card-border-opacity);
+            transition: opacity var(--transition-medium);
+            pointer-events: none; /* Allow interaction with card content */
+        }
+
+        @keyframes rainbow-border-anim {
+             0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .pen-card.dragging {
+            opacity: 0.5;
+            transform: scale(1.03);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .pen-card .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Simple Animated SVG placeholder */
+        .card-svg-icon {
+            width: 30px;
+            height: 30px;
+            flex-shrink: 0;
+            transition: transform var(--transition-medium);
+        }
+        .pen-card:hover .card-svg-icon { transform: rotate(15deg) scale(1.1); }
+
+        /* Editable Fields */
+        .editable {
+            background: rgba(0,0,0,0.05);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid transparent;
+            transition: all var(--transition-fast);
+            cursor: text;
+            min-height: 1.2em; /* Ensure it doesn't collapse when empty */
+        }
+        .editable:hover { background: rgba(0,0,0,0.08); }
+        .editable:focus {
+            background: var(--input-bg);
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 1px var(--accent);
+        }
+        .editable[contenteditable="true"]:empty::before {
+            content: attr(data-placeholder);
+            color: var(--text-muted);
+            font-style: italic;
+        }
+        .card-title { font-size: 1.2em; font-weight: 600; }
+        .card-desc { font-size: 0.95em; color: var(--text-muted); line-height: 1.5; }
+
+        /* Iframe Area */
+        .iframe-container {
+            margin-top: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            display: none; /* Hidden by default */
+        }
+        .pen-card.show-iframe .iframe-container { display: block; }
+        .iframe-container iframe {
+            display: block;
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            border: none;
+        }
+
+        /* Card Footer Actions */
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .card-actions .action-button {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 5px;
+            transition: color var(--transition-fast);
+            display: flex;
+            align-items: center;
+        }
+        .card-actions .action-button svg { width: 18px; height: 18px; fill: currentColor; }
+        .card-actions .action-button:hover { color: var(--accent); }
+        .card-actions .action-button.active { color: var(--accent); }
+
+        /* --- Export Preview Modal --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-medium), visibility var(--transition-medium);
+        }
+        .modal-overlay.visible { opacity: 1; visibility: visible; }
+
+        .modal-content {
+            background: var(--card-bg);
+            backdrop-filter: blur(var(--blur-intensity));
+            padding: 30px;
+            border-radius: var(--border-radius);
+            max-width: 80%;
+            width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        .modal-content h3 { margin-bottom: 15px; color: var(--text); }
+        .modal-content pre {
+            background: var(--input-bg);
+            padding: 15px;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: var(--text);
+            border: 1px solid var(--border-color);
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 15px; right: 15px;
+            background: none; border: none; font-size: 1.5em; cursor: pointer;
+            color: var(--text-muted); line-height: 1; padding: 5px;
+        }
+        .modal-close-btn:hover { color: var(--accent); }
+
+        /* --- Confetti --- */
+        .confetti {
+            position: absolute;
+            width: 8px; height: 15px;
+            background-color: #f0f; /* Placeholder, will be randomized */
+            opacity: 1;
+            animation: fall 4s linear forwards;
+            pointer-events: none;
+        }
+        @keyframes fall {
+            to { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+
+        /* --- Utility Classes --- */
+        .hidden { display: none !important; }
+
+        /* --- Footer --- */
+        .app-footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 0.9em;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border-color);
+            margin-top: 30px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            body { padding-top: 180px; /* Adjust for header wrap */ }
+            .header-content { flex-direction: column; align-items: stretch; }
+            .app-title { text-align: center; margin-bottom: 10px; font-size: 1.6em; }
+            .input-area { flex-direction: column; }
+            .input-area textarea { height: 60px; } /* More space for pasting on mobile */
+            #pen-grid { grid-template-columns: 1fr; padding: 15px; gap: 15px; }
+            .pen-card { padding: 15px; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <svg width="0" height="0" style="position:absolute">
+        <defs>
+            <symbol id="icon-add" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></symbol>
+            <symbol id="icon-export-txt" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></symbol>
+            <symbol id="icon-export-json" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 13v-2h-2v2H9v2h2v2h2v-2h2v-2h-2zm4-8V4l4 4h-4z"/></symbol> <symbol id="icon-undo" viewBox="0 0 24 24"><path d="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z"/></symbol>
+            <symbol id="icon-preview" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></symbol>
+            <symbol id="icon-trash" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></symbol>
+            <symbol id="icon-save" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
+            <symbol id="icon-sound-on" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></symbol>
+            <symbol id="icon-sound-off" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L7 9H3v6h4l5 5v-6.73l-5-5z"/></symbol>
+            <symbol id="icon-eye-open" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></symbol>
+            <symbol id="icon-eye-closed" viewBox="0 0 24 24"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.44-4.75C21.27 7.61 17 4.5 12 4.5c-1.74 0-3.4.52-4.87 1.48l1.87 1.87C9.74 7.13 10.85 7 12 7zm-1.07 5.53l2.61 2.61c-.27.03-.54.04-.81.04-2.76 0-5-2.24-5-5 0-.27.01-.54.04-.81l2.61 2.61zM2 4.27l3.13 3.13C3.01 8.8 1.73 10.39 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l2.4 2.4L21 19.73 3.27 2 2 4.27z"/></symbol>
+
+            <symbol id="svg-blob-animated" viewBox="0 0 50 50">
+              <path fill="var(--accent)">
+                <animate attributeName="d" dur="5s" repeatCount="indefinite"
+                  values="M45.1,-16.7C51.4,-0.9,44.5,19.7,30.2,31.9C15.9,44.1,-5.8,47.9,-22.7,40.6C-39.6,33.3,-51.7,14.8,-50.6,-4.1C-49.5,-23,-35.2,-42.3,-18.7,-46.3C-2.2,-50.3,16.5,-38.1,29.8,-27.1C43.1,-16.1,51.1,-6.2,45.1,-16.7Z;
+                          M36.4,-10.7C44.7,6.4,47.2,29.1,37.5,41.1C27.8,53.1,5.9,54.5,-13.1,47.6C-32.1,40.7,-48.1,25.4,-51.4,7.7C-54.7,-10,-45.2,-30.1,-30.8,-39.5C-16.4,-48.9,-7,-47.7,6.9,-43.8C20.8,-39.9,39.1,-33.2,36.4,-10.7Z;
+                          M45.1,-16.7C51.4,-0.9,44.5,19.7,30.2,31.9C15.9,44.1,-5.8,47.9,-22.7,40.6C-39.6,33.3,-51.7,14.8,-50.6,-4.1C-49.5,-23,-35.2,-42.3,-18.7,-46.3C-2.2,-50.3,16.5,-38.1,29.8,-27.1C43.1,-16.1,51.1,-6.2,45.1,-16.7Z"
+                  calcMode="spline" keyTimes="0; 0.5; 1" keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"/>
+              </path>
+            </symbol>
+        </defs>
+    </svg>
+
+    <header class="app-header">
+        <div class="header-content">
+            <h1 class="app-title">CodePen Curator 3D</h1>
+            <div class="input-area">
+                <textarea id="url-input" placeholder="Paste CodePen URLs here (one per line)..."></textarea>
+                <button id="add-pens-btn" class="button">
+                    <svg><use xlink:href="#icon-add"/></svg> Add Pens
+                </button>
+            </div>
+            <div class="controls">
+                <div class="theme-switcher" title="Change Theme (Light/Dark/Glow)">
+                    <button id="theme-toggle-btn">
+                        <span class="icon-light">☀️</span>
+                        <span class="icon-dark">🌙</span>
+                        <span class="icon-glow">✨</span>
+                    </button>
+                </div>
+                 <div title="Toggle Sound Effects">
+                     <button id="sound-toggle-btn" class="button secondary">
+                         <svg class="sound-icon-on"><use xlink:href="#icon-sound-on"/></svg>
+                         <svg class="sound-icon-off hidden"><use xlink:href="#icon-sound-off"/></svg>
+                     </button>
+                 </div>
+                <button id="undo-btn" class="button secondary" title="Undo Last Reorder" disabled>
+                    <svg><use xlink:href="#icon-undo"/></svg> Undo
+                </button>
+                <button id="preview-export-btn" class="button secondary" title="Preview Export Data">
+                    <svg><use xlink:href="#icon-preview"/></svg> Preview
+                </button>
+                <button id="export-txt-btn" class="button" title="Export URLs as TXT">
+                    <svg><use xlink:href="#icon-export-txt"/></svg> TXT
+                    <span id="export-badge" style="background:red; color:white; border-radius:50%; padding: 2px 6px; font-size: 0.7em; margin-left: 5px; display:none;">0</span>
+                </button>
+                <button id="export-json-btn" class="button" title="Export Data as JSON">
+                    <svg><use xlink:href="#icon-export-json"/></svg> JSON
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main id="pen-grid">
+        </main>
+
+    <div id="export-preview-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close-btn" class="modal-close-btn">&times;</button>
+            <h3>Export Preview</h3>
+            <h4>TXT Format (URLs):</h4>
+            <pre id="preview-txt"></pre>
+            <h4>JSON Format (Data):</h4>
+            <pre id="preview-json"></pre>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        Built with ❤️ and Vanilla JS. No frameworks, no libraries. Just the web platform.
+    </footer>
+
+    <audio id="blip-sound" src="data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUQAAAAAAAAAAAAAAAAAAAAAAAD//wIA/f8EAPr/BgD4/wcA9v8JAPX/CwD0/w0A8v8PAPD/EQDu/xMA7P8VAOr/FwDo/xgA5v8aAOb/HADN/x4A0P8gANH/IgDT/yQA1P8mANX/JwDX/ykA2P8qANn/KwDb/y0A3f8uAN//LgDh/y8A4v8wAOf/MQDq/zIA7/8zAAD/MgAA/zIA/v8xAPv/MAD6/y8A+f8uAPn/LQ=="></audio>
+    <audio id="confetti-sound" src="data:audio/wav;base64,UklGRigBAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0YQQBAAD/////////////////////////////AAAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8AAAAA/////wAAAP////8="></audio>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const penGrid = document.getElementById('pen-grid');
+            const urlInput = document.getElementById('url-input');
+            const addPensBtn = document.getElementById('add-pens-btn');
+            const exportTxtBtn = document.getElementById('export-txt-btn');
+            const exportJsonBtn = document.getElementById('export-json-btn');
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            const undoBtn = document.getElementById('undo-btn');
+            const previewExportBtn = document.getElementById('preview-export-btn');
+            const modalOverlay = document.getElementById('export-preview-modal');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+            const previewTxt = document.getElementById('preview-txt');
+            const previewJson = document.getElementById('preview-json');
+            const soundToggleBtn = document.getElementById('sound-toggle-btn');
+            const blipSound = document.getElementById('blip-sound');
+            const confettiSound = document.getElementById('confetti-sound');
+            const exportBadge = document.getElementById('export-badge');
+
+            const STORAGE_KEY_PENS = 'codepenCuratorPens_v3';
+            const STORAGE_KEY_THEME = 'codepenCuratorTheme_v3';
+            const STORAGE_KEY_SOUND = 'codepenCuratorSound_v3';
+            const STORAGE_KEY_EXPORTS = 'codepenCuratorExports_v3';
+
+            let pensData = [];
+            let undoStack = [];
+            const MAX_UNDO = 5;
+            let draggedItem = null;
+            let soundEnabled = localStorage.getItem(STORAGE_KEY_SOUND) !== 'false';
+            let exportCount = parseInt(localStorage.getItem(STORAGE_KEY_EXPORTS) || '0');
+
+            // --- Sound Handling ---
+            const playSound = (audioElement) => {
+                if (soundEnabled && audioElement) {
+                    audioElement.currentTime = 0;
+                    audioElement.play().catch(e => console.warn("Audio play interrupted:", e));
+                }
+            };
+
+            const updateSoundToggleVisuals = () => {
+                const iconOn = soundToggleBtn.querySelector('.sound-icon-on');
+                const iconOff = soundToggleBtn.querySelector('.sound-icon-off');
+                if (soundEnabled) {
+                    iconOn.classList.remove('hidden');
+                    iconOff.classList.add('hidden');
+                    soundToggleBtn.title = "Mute Sound Effects";
+                } else {
+                    iconOn.classList.add('hidden');
+                    iconOff.classList.remove('hidden');
+                    soundToggleBtn.title = "Unmute Sound Effects";
+                }
+            };
+
+            soundToggleBtn.addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                localStorage.setItem(STORAGE_KEY_SOUND, soundEnabled);
+                updateSoundToggleVisuals();
+                playSound(blipSound); // Play sound on toggle itself
+            });
+
+            // --- Theme Handling ---
+            const themes = ['light', 'dark', 'glow'];
+            let currentThemeIndex = 0;
+
+            const applyTheme = (themeName) => {
+                document.body.classList.remove('dark-mode', 'glow-mode'); // Remove all theme classes
+                if (themeName === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    currentThemeIndex = 1;
+                } else if (themeName === 'glow') {
+                    document.body.classList.add('glow-mode');
+                    currentThemeIndex = 2;
+                } else {
+                    // Light is default, no class needed
+                    currentThemeIndex = 0;
+                }
+                localStorage.setItem(STORAGE_KEY_THEME, themeName);
+                // Update any theme-dependent elements if needed (e.g., iframe themes)
+                document.querySelectorAll('.pen-card iframe').forEach(iframe => {
+                    const url = new URL(iframe.src);
+                    url.searchParams.set('theme-id', themeName); // Assumes CodePen uses theme-id param
+                    iframe.src = url.toString();
+                });
+            };
+
+            themeToggleBtn.addEventListener('click', () => {
+                currentThemeIndex = (currentThemeIndex + 1) % themes.length;
+                applyTheme(themes[currentThemeIndex]);
+                playSound(blipSound);
+            });
+
+            // --- Data & State Management ---
+            const saveData = () => {
+                localStorage.setItem(STORAGE_KEY_PENS, JSON.stringify(pensData));
+            };
+
+            const loadData = () => {
+                const savedPens = localStorage.getItem(STORAGE_KEY_PENS);
+                if (savedPens) {
+                    pensData = JSON.parse(savedPens);
+                }
+                const savedTheme = localStorage.getItem(STORAGE_KEY_THEME) || 'light';
+                const themeIndex = themes.indexOf(savedTheme);
+                currentThemeIndex = themeIndex !== -1 ? themeIndex : 0;
+                applyTheme(themes[currentThemeIndex]);
+                updateSoundToggleVisuals();
+                updateExportBadge();
+            };
+
+            const addStateToUndo = () => {
+                undoStack.push(JSON.stringify(pensData));
+                if (undoStack.length > MAX_UNDO) {
+                    undoStack.shift(); // Remove oldest state
+                }
+                undoBtn.disabled = false;
+            };
+
+            const undoLastAction = () => {
+                if (undoStack.length > 0) {
+                    const prevState = undoStack.pop();
+                    pensData = JSON.parse(prevState);
+                    saveData();
+                    renderPens();
+                    playSound(blipSound);
+                }
+                if (undoStack.length === 0) {
+                    undoBtn.disabled = true;
+                }
+            };
+
+            undoBtn.addEventListener('click', undoLastAction);
+
+             // --- Export Badge ---
+             const incrementExportCount = () => {
+                exportCount++;
+                localStorage.setItem(STORAGE_KEY_EXPORTS, exportCount);
+                updateExportBadge();
+            };
+
+            const updateExportBadge = () => {
+                if (exportCount > 0) {
+                    exportBadge.textContent = exportCount;
+                    exportBadge.style.display = 'inline-block';
+                } else {
+                    exportBadge.style.display = 'none';
+                }
+            };
+
+
+            // --- Rendering ---
+            const parseCodePenUrl = (url) => {
+                try {
+                    const parsed = new URL(url);
+                    if (parsed.hostname !== 'codepen.io') return null;
+                    const parts = parsed.pathname.split('/').filter(Boolean);
+                    // Handle different URL structures (pen, details, full, etc.)
+                    if (parts.length >= 3 && ['pen', 'details', 'full', 'pres', 'embed'].includes(parts[1])) {
+                        return { user: parts[0], slug: parts[2], id: `${parts[0]}/${parts[2]}` };
+                    }
+                    if (parts.length === 2 && parts[0] !== 'popular') { // Basic profile/pen link
+                        return { user: parts[0], slug: parts[1], id: `${parts[0]}/${parts[1]}` };
+                    }
+                } catch (e) {
+                    console.error("URL Parsing Error:", e);
+                    return null;
+                }
+                return null;
+            };
+
+            const createPenElement = (pen) => {
+                const card = document.createElement('div');
+                card.className = 'pen-card';
+                card.draggable = true;
+                card.dataset.id = pen.id;
+
+                const parsed = parseCodePenUrl(pen.url); // Re-parse for embed URL if needed
+                if (!parsed) return null; // Skip if URL becomes invalid somehow
+
+                // Card Header with SVG
+                const cardHeader = document.createElement('div');
+                cardHeader.className = 'card-header';
+                const svgIcon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svgIcon.setAttribute('class', 'card-svg-icon');
+                svgIcon.innerHTML = '<use xlink:href="#svg-blob-animated"/>'; // Use the animated blob
+                cardHeader.appendChild(svgIcon);
+
+                // Editable Title
+                const title = document.createElement('div');
+                title.className = 'editable card-title';
+                title.contentEditable = true;
+                title.textContent = pen.title;
+                title.dataset.placeholder = "Enter Pen Title...";
+                title.dataset.field = "title";
+                cardHeader.appendChild(title);
+                card.appendChild(cardHeader);
+
+                // Editable Description
+                const desc = document.createElement('div');
+                desc.className = 'editable card-desc';
+                desc.contentEditable = true;
+                desc.textContent = pen.description;
+                desc.dataset.placeholder = "Enter Description...";
+                desc.dataset.field = "description";
+                card.appendChild(desc);
+
+                // Iframe Container (hidden by default)
+                const iframeContainer = document.createElement('div');
+                iframeContainer.className = 'iframe-container';
+                const iframe = document.createElement('iframe');
+                const embedTheme = themes[currentThemeIndex] || 'light'; // Use current theme
+                iframe.src = `https://codepen.io/${parsed.user}/embed/${parsed.slug}?default-tab=result&theme-id=${embedTheme}`;
+                iframe.title = `CodePen Embed: ${pen.title || parsed.slug}`;
+                iframe.loading = 'lazy';
+                iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups allow-presentation';
+                iframeContainer.appendChild(iframe);
+                card.appendChild(iframeContainer);
+
+                // Card Actions (Footer)
+                const actions = document.createElement('div');
+                actions.className = 'card-actions';
+
+                const togglePreviewBtn = document.createElement('button');
+                togglePreviewBtn.className = 'action-button toggle-preview';
+                togglePreviewBtn.title = 'Toggle Preview';
+                togglePreviewBtn.innerHTML = `<svg class="icon-eye-closed"><use xlink:href="#icon-eye-closed"/></svg><svg class="icon-eye-open hidden"><use xlink:href="#icon-eye-open"/></svg>`;
+                actions.appendChild(togglePreviewBtn);
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'action-button save-pen hidden'; // Hidden initially
+                saveBtn.title = 'Save Changes';
+                saveBtn.innerHTML = `<svg><use xlink:href="#icon-save"/></svg>`;
+                actions.appendChild(saveBtn);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'action-button delete-pen';
+                deleteBtn.title = 'Delete Pen';
+                deleteBtn.innerHTML = `<svg><use xlink:href="#icon-trash"/></svg>`;
+                actions.appendChild(deleteBtn);
+
+                card.appendChild(actions);
+
+                // --- Event Listeners for the card ---
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+
+                title.addEventListener('input', () => handleEdit(pen.id, 'title', title.textContent, saveBtn));
+                desc.addEventListener('input', () => handleEdit(pen.id, 'description', desc.textContent, saveBtn));
+                title.addEventListener('blur', () => handleBlurSave(pen.id, 'title', title.textContent, saveBtn));
+                desc.addEventListener('blur', () => handleBlurSave(pen.id, 'description', desc.textContent, saveBtn));
+
+                saveBtn.addEventListener('click', () => savePenChanges(pen.id, saveBtn));
+                deleteBtn.addEventListener('click', () => deletePen(pen.id));
+                togglePreviewBtn.addEventListener('click', () => togglePreview(card, togglePreviewBtn));
+
+                return card;
+            };
+
+            const renderPens = () => {
+                penGrid.innerHTML = ''; // Clear existing grid
+                pensData.forEach(pen => {
+                    const penElement = createPenElement(pen);
+                    if (penElement) {
+                        penGrid.appendChild(penElement);
+                    }
+                });
+                // Add dragover listener to the grid itself for dropping
+                penGrid.addEventListener('dragover', handleDragOver);
+                penGrid.addEventListener('drop', handleDrop);
+            };
+
+             // --- Card Interaction Handlers ---
+            const handleEdit = (id, field, value, saveBtn) => {
+                 saveBtn.classList.remove('hidden'); // Show save button on edit
+            };
+
+            const handleBlurSave = (id, field, value, saveBtn) => {
+                 // Find the pen and update temporarily, but don't save to localStorage yet
+                 const penIndex = pensData.findIndex(p => p.id === id);
+                 if (penIndex > -1) {
+                     pensData[penIndex][field] = value;
+                     // Don't save here, wait for explicit save click or handle differently
+                 }
+                 // Optionally hide save button after a delay if not clicked
+                 // setTimeout(() => saveBtn.classList.add('hidden'), 3000);
+            };
+
+            const savePenChanges = (id, saveBtn) => {
+                addStateToUndo(); // Save state before explicit save
+                // Data should already be updated from handleBlurSave/input
+                saveData();
+                saveBtn.classList.add('hidden'); // Hide save button after saving
+                playSound(blipSound);
+            };
+
+            const deletePen = (id) => {
+                if (confirm('Are you sure you want to delete this pen?')) {
+                    addStateToUndo();
+                    pensData = pensData.filter(p => p.id !== id);
+                    saveData();
+                    renderPens();
+                    playSound(blipSound);
+                }
+            };
+
+            const togglePreview = (card, button) => {
+                card.classList.toggle('show-iframe');
+                const isOpen = card.classList.contains('show-iframe');
+                button.querySelector('.icon-eye-open').classList.toggle('hidden', !isOpen);
+                button.querySelector('.icon-eye-closed').classList.toggle('hidden', isOpen);
+                button.title = isOpen ? 'Hide Preview' : 'Show Preview';
+                playSound(blipSound);
+            };
+
+
+            // --- Add Pens Logic ---
+            addPensBtn.addEventListener('click', () => {
+                addStateToUndo();
+                const urls = urlInput.value.split('\n').map(url => url.trim()).filter(url => url);
+                let addedCount = 0;
+                urls.forEach(url => {
+                    const parsed = parseCodePenUrl(url);
+                    if (parsed && !pensData.some(p => p.id === parsed.id)) {
+                        pensData.push({
+                            id: parsed.id,
+                            url: url, // Store original URL
+                            title: `CodePen: ${parsed.slug}`, // Default title
+                            description: `User: ${parsed.user}`, // Default description
+                            user: parsed.user,
+                            slug: parsed.slug
+                        });
+                        addedCount++;
+                    } else if (!parsed) {
+                        console.warn(`Invalid CodePen URL skipped: ${url}`);
+                         alert(`Invalid or unsupported CodePen URL format skipped:\n${url}`);
+                    } else {
+                         console.warn(`Duplicate CodePen skipped: ${url}`);
+                         alert(`Duplicate CodePen skipped:\n${url}`);
+                    }
+                });
+                if (addedCount > 0) {
+                    saveData();
+                    renderPens();
+                    urlInput.value = ''; // Clear input field
+                    playSound(blipSound);
+                }
+            });
+
+            // --- Drag and Drop Logic ---
+            function handleDragStart(e) {
+                draggedItem = this;
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', this.dataset.id);
+                // Use setTimeout to allow the browser to render the drag image before applying class
+                setTimeout(() => this.classList.add('dragging'), 0);
+                playSound(blipSound); // Sound on pick up
+            }
+
+            function handleDragEnd(e) {
+                setTimeout(() => { // Ensure styles are removed after drop potentially happens
+                    this.classList.remove('dragging');
+                    draggedItem = null;
+                }, 0);
+                // Clear any drop indicators if needed (not implemented here)
+            }
+
+            function handleDragOver(e) {
+                e.preventDefault(); // Necessary to allow dropping
+                e.dataTransfer.dropEffect = 'move';
+                // Optional: Add visual indicator for drop target
+                const target = e.target.closest('.pen-card');
+                // Simple visual cue - could be more sophisticated
+                if (target && target !== draggedItem) {
+                     // Remove existing cues
+                     penGrid.querySelectorAll('.drag-over-indicator').forEach(el => el.remove());
+
+                     const rect = target.getBoundingClientRect();
+                     const isAfter = e.clientY > rect.top + rect.height / 2;
+                     const indicator = document.createElement('div');
+                     indicator.style.height = '5px';
+                     indicator.style.background = 'var(--accent)';
+                     indicator.style.margin = '5px 0';
+                     indicator.classList.add('drag-over-indicator');
+
+                     if(isAfter) {
+                         target.parentNode.insertBefore(indicator, target.nextSibling);
+                     } else {
+                         target.parentNode.insertBefore(indicator, target);
+                     }
+                }
+            }
+
+            function handleDrop(e) {
+                 e.preventDefault();
+                 penGrid.querySelectorAll('.drag-over-indicator').forEach(el => el.remove()); // Clean up indicators
+                 if (!draggedItem) return;
+
+                 const targetItem = e.target.closest('.pen-card');
+                 const draggedId = draggedItem.dataset.id;
+
+                 if (targetItem && targetItem !== draggedItem) {
+                     const targetId = targetItem.dataset.id;
+                     const draggedIndex = pensData.findIndex(p => p.id === draggedId);
+                     const targetIndex = pensData.findIndex(p => p.id === targetId);
+
+                     if (draggedIndex > -1 && targetIndex > -1) {
+                         addStateToUndo(); // Save state before reordering
+                         // Remove and insert
+                         const [removedPen] = pensData.splice(draggedIndex, 1);
+                         // Adjust target index if dragged item was before target
+                         const adjustedTargetIndex = draggedIndex < targetIndex ? targetIndex -1 : targetIndex;
+
+                         // Determine if dropping before or after based on cursor position
+                         const rect = targetItem.getBoundingClientRect();
+                         const dropAfter = e.clientY > rect.top + rect.height / 2;
+
+                         if (dropAfter) {
+                             pensData.splice(adjustedTargetIndex + 1, 0, removedPen);
+                         } else {
+                             pensData.splice(adjustedTargetIndex, 0, removedPen);
+                         }
+
+                         saveData();
+                         renderPens(); // Re-render based on new data order
+                         playSound(blipSound); // Sound on drop
+                     }
+                 } else if (!targetItem && e.target === penGrid) {
+                     // Dropped onto the grid background (append to end)
+                     const draggedIndex = pensData.findIndex(p => p.id === draggedId);
+                     if (draggedIndex !== pensData.length - 1) { // Only move if not already last
+                         addStateToUndo();
+                         const [removedPen] = pensData.splice(draggedIndex, 1);
+                         pensData.push(removedPen);
+                         saveData();
+                         renderPens();
+                         playSound(blipSound);
+                     }
+                 }
+                 draggedItem.classList.remove('dragging'); // Ensure dragging class is removed
+                 draggedItem = null;
+            }
+
+            // --- Export Logic ---
+            const generateTxtOutput = () => {
+                return pensData.map(pen => pen.url).join('\n');
+            };
+
+            const generateJsonOutput = () => {
+                const exportData = pensData.map(({ id, url, title, description, user, slug }) => ({ url, title, description, user, slug }));
+                return JSON.stringify(exportData, null, 2); // Pretty print JSON
+            };
+
+            const downloadFile = (filename, content, mimeType) => {
+                const blob = new Blob([content], { type: mimeType });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                triggerConfetti(); // Celebrate!
+                playSound(confettiSound);
+                incrementExportCount(); // Gamify
+            };
+
+            exportTxtBtn.addEventListener('click', () => {
+                const txtContent = generateTxtOutput();
+                downloadFile('codepen_curator_export.txt', txtContent, 'text/plain');
+            });
+
+            exportJsonBtn.addEventListener('click', () => {
+                const jsonContent = generateJsonOutput();
+                downloadFile('codepen_curator_export.json', jsonContent, 'application/json');
+            });
+
+            // --- Preview Modal Logic ---
+            previewExportBtn.addEventListener('click', () => {
+                previewTxt.textContent = generateTxtOutput() || "(No pens added)";
+                previewJson.textContent = generateJsonOutput() || "[]";
+                modalOverlay.classList.add('visible');
+                playSound(blipSound);
+            });
+
+            modalCloseBtn.addEventListener('click', () => {
+                modalOverlay.classList.remove('visible');
+            });
+
+            modalOverlay.addEventListener('click', (e) => {
+                if (e.target === modalOverlay) { // Close only if clicking the overlay itself
+                    modalOverlay.classList.remove('visible');
+                }
+            });
+
+            // --- Confetti Logic ---
+            const triggerConfetti = () => {
+                const confettiCount = 50;
+                const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff4757', '#5352ed', '#2ed573'];
+                for (let i = 0; i < confettiCount; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = `${Math.random() * 100}vw`;
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    // Randomize animation duration slightly for variation
+                    confetti.style.animationDuration = `${Math.random() * 1 + 3}s`;
+                    // Randomize horizontal drift
+                    const drift = (Math.random() - 0.5) * 200; // Pixels left/right
+                    confetti.animate([
+                         { transform: `translateY(0) translateX(0) rotate(${Math.random() * 360}deg)` },
+                         { transform: `translateY(100vh) translateX(${drift}px) rotate(${Math.random() * 720 + 360}deg)` }
+                    ], {
+                         duration: parseFloat(confetti.style.animationDuration) * 1000,
+                         easing: 'linear',
+                    });
+
+                    document.body.appendChild(confetti);
+                    // Remove confetti element after animation
+                    setTimeout(() => confetti.remove(), parseFloat(confetti.style.animationDuration) * 1000);
+                }
+            };
+
+
+            // --- Initial Load ---
+            loadData();
+            renderPens();
+            undoBtn.disabled = undoStack.length === 0; // Initial undo state
+        });
+    </script>
+
+</body>
+</html>
